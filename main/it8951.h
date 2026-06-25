@@ -30,6 +30,12 @@
 #define USDEF_I80_CMD_DPY_BUF_AREA 0x0037
 #define USDEF_I80_CMD_VCOM 0x0039
 
+// I80 modes
+#define IT8951_2BPP   0
+#define IT8951_3BPP   1
+#define IT8951_4BPP   2
+#define IT8951_8BPP   3
+
 //-----------------------------------------------------------------------
 // IT8951 TCon Registers defines
 //-----------------------------------------------------------------------
