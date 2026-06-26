@@ -5,4 +5,7 @@ idf_component_register(SRCS
                         "wifi.c"
                         "tcp_client.c"
                         "button.c"
-                    INCLUDE_DIRS ".")
+                        "mdns_discover.c"
+                    INCLUDE_DIRS "."
+                    REQUIRES mdns esp_driver_i2c esp_driver_spi esp_driver_gpio esp_wifi nvs_flash
+                    )

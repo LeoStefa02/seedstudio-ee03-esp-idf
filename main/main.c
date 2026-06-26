@@ -5,6 +5,9 @@
 #include "tcp_client.h"
 #include "button.h"
 #include "it8951.h"
+#include "mdns.h"
+#include "mdns_discover.h"
+
 
 #define WIFI_SSID "Dalmazio Birazio"
 #define WIFI_PASSWORD "123pollo"
@@ -36,6 +39,7 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Framebuffer allocated at : %p", (void *)s_framebuffer);
 
+    ESP_ERROR_CHECK(mdns_init());
     ESP_ERROR_CHECK(button_init());
     ESP_ERROR_CHECK(tcp_client_start(s_framebuffer, dev_info.usPanelW * dev_info.usPanelH / 2));
 }

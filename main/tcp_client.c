@@ -7,12 +7,11 @@
 #include "lwip/netdb.h"
 #include "it8951.h"
 #include "button.h"
+#include "mdns_discover.h"
 #include "esp_log.h"
 #include <errno.h>
 #include <string.h>
 
-#define SERVER_HOST "leonardo-notebook.local"
-#define SERVER_PORT "5555"
 #define CONNECT_TIMEOUT_S 10
 #define RETRY_DELAY_MS 3000
 
@@ -165,18 +164,29 @@ static void run_session(int sock)
 // ----------------------------------------------------------
 static void tcp_client_task(void *arg)
 {
+
+    char     server_ip[16] = {0};
+    uint16_t server_port   = 0;
+
     while (1)
     {
+        if (server_ip[0] == '\0') {
+            while (mdns_discover_server(server_ip,
+                                        sizeof(server_ip),
+                                        &server_port) != ESP_OK) {
+                ESP_LOGW(TAG, "Retrying mDNS in 3s...");
+                vTaskDelay(pdMS_TO_TICKS(3000));
+            }
+        }
 
-        // --- Resolve hostname ---
-        struct addrinfo hints = {.ai_socktype = SOCK_STREAM};
-        struct addrinfo *addr = NULL;
+        // --- Create socket ---
+        struct addrinfo  hints = { .ai_socktype = SOCK_STREAM };
+        struct addrinfo *addr  = NULL;
+        char             port_str[6];
+        snprintf(port_str, sizeof(port_str), "%d", server_port);
 
-        if (getaddrinfo(SERVER_HOST, SERVER_PORT,
-                        &hints, &addr) != 0 ||
-            addr == NULL)
-        {
-            ESP_LOGE(TAG, "DNS failed — retry in %dms", RETRY_DELAY_MS);
+        if (getaddrinfo(server_ip, port_str, &hints, &addr) != 0 || !addr) {
+            ESP_LOGE(TAG, "getaddrinfo failed");
             vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_MS));
             continue;
         }
@@ -205,8 +215,6 @@ static void tcp_client_task(void *arg)
             ESP_LOGI(TAG, "TCP_NODELAY enabled - button lag should be gone!");
         }
 
-        // --- Connect ---
-        ESP_LOGI(TAG, "Connecting to %s:%s ...", SERVER_HOST, SERVER_PORT);
 
         if (connect(s_sock, addr->ai_addr, addr->ai_addrlen) != 0)
         {
@@ -220,7 +228,6 @@ static void tcp_client_task(void *arg)
         }
 
         freeaddrinfo(addr);
-        ESP_LOGI(TAG, "Connected to %s:%s", SERVER_HOST, SERVER_PORT);
 
         // --- Run until disconnected ---
         run_session(s_sock);
